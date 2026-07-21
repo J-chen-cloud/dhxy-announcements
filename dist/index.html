@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大话西游2 维护公告历史检索</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+        :root {
+            --bg-primary: linear-gradient(135deg, #f0f7ff 0%, #fff0f5 50%, #ffffff 100%);
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --border-color: #e2e8f0;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --text-muted: #9ca3af;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #60a5fa;
+            --accent-pink: #ec4899;
+            --accent-pink-light: #f9a8d4;
+            --accent-gold: #d97706;
+            --accent-gold-light: #f59e0b;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --shadow-sm: 0 1px 3px 0 rgba(59, 130, 246, 0.08);
+            --shadow-md: 0 4px 12px -1px rgba(59, 130, 246, 0.12);
+            --shadow-lg: 0 10px 25px -3px rgba(59, 130, 246, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #e0f2fe 0%, #fce7f3 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 2rem 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e40af;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 1px 2px rgba(59,130,246,0.15);
+            letter-spacing: 2px;
+        }
+
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-section {
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.85rem 1.25rem;
+            border: 2px solid #d1d5db;
+            border-radius: 12px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 500;
+            font-family: 'Noto Sans SC', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .search-btn {
+            padding: 0.85rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #3b82f6, #ec4899);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .search-btn:hover {
+            background: var(--accent-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+
+
+        .stats-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+        }
+
+        .stats-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .stats-content .stat-value {
+            color: #1e40af;
+            font-weight: 600;
+        }
+
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem 1rem;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: none;
+            color: var(--text-secondary);
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: #1e40af;
+            border-bottom-color: var(--accent-gold);
+        }
+
+        .tab-btn .badge {
+            display: inline-block;
+            margin-left: 0.5rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            background: var(--bg-hover);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .announcements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+
+        .announcement-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .announcement-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(135deg, #3b82f6, #ec4899);
+        }
+
+        .announcement-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: #3b82f6;
+        }
+
+        .announcement-card.classic::before { background: var(--accent-green); }
+        .announcement-card.regular::before { background: linear-gradient(135deg, #3b82f6, #ec4899); }
+        .announcement-card.nostalgic::before { background: var(--accent-red); }
+
+        .card-server-tag {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-server-tag.classic { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .card-server-tag.regular { background: rgba(59, 130, 246, 0.1); color: #1e40af; }
+        .card-server-tag.nostalgic { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+
+        .card-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .card-date {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.8rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-date svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .card-preview {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-highlight {
+            background: rgba(245, 158, 11, 0.2);
+            color: #1e40af;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        .modal-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .modal-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow: auto;
+            position: relative;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.92) translateY(16px);
+            opacity: 0;
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        .modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            z-index: 10;
+        }
+
+        .modal-title-section h2 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-meta {
+            display: flex;
+            gap: 1rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .modal-body {
+            padding: 2rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 500;
+            white-space: pre-wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .announcement-card {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 2rem;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.5rem; }
+            .announcements-grid { grid-template-columns: 1fr; }
+            .stats-content { gap: 1rem; font-size: 0.8rem; }
+            .modal-header { padding: 1rem; }
+            .modal-body { padding: 1rem; }
+        }
+        mark.highlight {
+            background: linear-gradient(120deg, #fef08a 0%, #fde047 100%);
+            color: #1e293b;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-weight: 700;
+        }
+
+        .pagination-nav {
+            display: flex;
+            justify-content: center;
+            padding: 1.5rem 0 0;
+            margin-top: 0.5rem;
+        }
+        .pagination-inner {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .pg-btn {
+            padding: 0.5rem 0.9rem;
+            border: 1px solid var(--border-color);
+            background: #fff;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pg-btn:hover:not(:disabled) {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: var(--accent-blue);
+        }
+        .pg-btn.pg-active {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: var(--accent-blue);
+            font-weight: 700;
+        }
+        .pg-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .pg-ellipsis {
+            color: var(--text-muted);
+            padding: 0.5rem 0.3rem;
+            font-size: 0.9rem;
+        }
+        .pg-info {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin: 0 0.5rem;
+            white-space: nowrap;
+        }
+        .pg-jump-input {
+            width: 55px;
+            padding: 0.45rem 0.3rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .pg-jump-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+    
+/* ====== Tab Background Hero ====== */
+.hero-banner {
+    position: relative;
+    width: 100%;
+    min-height: 280px;
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    transition: background-image 0.5s ease;
+    overflow: hidden;
+}
+.hero-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(240,247,255,0.3) 0%, rgba(255,255,255,0.85) 70%, #ffffff 100%);
+}
+.hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2.5rem 1rem 1.5rem;
+    text-align: center;
+}
+.hero-logos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.hero-logos img {
+    height: 70px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+    transition: transform 0.3s ease;
+}
+.hero-logos img:hover {
+    transform: scale(1.05);
+}
+.bg-classic { background-image: url('images/bg-classic.jpg'); }
+.bg-regular { background-image: url('images/bg-regular.jpg'); }
+.bg-nostalgic { background-image: url('images/bg-nostalgic.jpg'); }
+.bg-all { background: linear-gradient(135deg, #f0f7ff 0%, #fff0f5 50%, #ffffff 100%); }
+.bg-all .hero-logos { display: flex; }
+.bg-classic .hero-logos,
+.bg-regular .hero-logos,
+.bg-nostalgic .hero-logos { display: none; }
+
+/* Adjust header when hero is present */
+.header {
+    background: linear-gradient(135deg, #e0f2fe 0%, #fce7f3 100%);
+}
+
+    </style>
+</head>
+<body>
+    <div class="hero-banner bg-all" id="heroBanner">
+        <div class="hero-content">
+            <div class="hero-logos" id="heroLogos">
+                <img src="images/logo-classic.png" alt="大话西游2经典版">
+                <img src="images/logo-regular.png" alt="大话西游2免费版">
+                <img src="images/logo-nostalgic.png" alt="大话西游2怀旧服">
+            </div>
+            <header class="header" style="background:none;border:none;backdrop-filter:none;position:static;padding:0;">
+                <div class="header-content">
+            <h1>大话西游2 维护公告历史检索</h1>
+            <p class="subtitle">经典版 / 常规服 / 怀旧服 — 公告一站式管理</p>
+            <div class="search-section">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="searchInput" placeholder="搜索公告标题、关键词、日期...">
+                    <button class="search-btn" onclick="performSearch()">搜索</button>
+                </div>
+
+                </div>
+            </header>
+        </div>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stats-content">
+            <span>公告总数: <span class="stat-value" id="totalCount">0</span></span>
+            <span>经典版: <span class="stat-value" id="classicCount">0</span></span>
+            <span>常规服: <span class="stat-value" id="regularCount">0</span></span>
+            <span>怀旧服: <span class="stat-value" id="nostalgicCount">0</span></span>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="all" onclick="switchTab(this)">
+                全部 <span class="badge">0</span>
+            </button>
+            <button class="tab-btn" data-tab="classic" onclick="switchTab(this)">
+                经典版 <span class="badge">0</span>
+            </button>
+            <button class="tab-btn" data-tab="regular" onclick="switchTab(this)">
+                常规服 <span class="badge">0</span>
+            </button>
+            <button class="tab-btn" data-tab="nostalgic" onclick="switchTab(this)">
+                怀旧服 <span class="badge">0</span>
+            </button>
+        </div>
+
+        <div class="announcements-grid" id="announcementsGrid"></div>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p>未找到匹配的公告</p>
+            <p style="margin-top: 0.5rem; font-size: 0.85rem;">尝试使用其他关键词或清除筛选条件</p>
+        </div>
+        <div id="paginationNav" class="pagination-nav"></div>
+    </main>
+
+    <footer class="footer">
+        <p>大话西游2 维护公告历史检索系统 | 数据来源：网易官方公告</p>
+    </footer>
+
+    <div class="modal-overlay" id="detailModal" onclick="closeModal(event)">
+        <div class="modal-container" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title-section">
+                    <h2 id="modalTitle">公告标题</h2>
+                    <div class="modal-meta">
+                        <span id="modalDate">2024-01-01</span>
+                        <span id="modalServer">经典版</span>
+                    </div>
+                </div>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">公告内容...</div>
+        </div>
+    </div>
+
+    <div id="loading-state" style="padding:40px;text-align:center;color:#3b82f6;font-size:16px;">
+  <div style="margin-bottom:16px;font-size:30px;">⏳</div>
+  <div>正在加载公告数据（约 8MB）...</div>
+  <div style="margin-top:8px;font-size:13px;color:#888;">首次加载可能需要 5-10 秒</div>
+</div>
+<script>
+window.ANNOUNCEMENTS_DATA = [];
+let isDataLoaded = false;
+
+console.log('FETCH: Starting...');
+fetch('announcements_data.json?v=10')
+  .then(r => {
+    console.log('FETCH: Response received, status=' + r.status);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json().then(data => {
+      console.log('FETCH: JSON parsed, items=' + data.length);
+      return data;
+    });
+  })
+  .then(data => {
+    window.ANNOUNCEMENTS_DATA = data;
+    isDataLoaded = true;
+    const el = document.getElementById('loading-state');
+    if (el) el.style.display = 'none';
+    if (typeof updateStats === 'function') {
+      updateStats();
+      renderAnnouncements();
+      updateHeroBackground();
+    }
+  })
+  .catch(e => {
+    console.error('加载失败:', e);
+    const el = document.getElementById('loading-state');
+    if (el) el.innerHTML = '<div style="color:red;padding:40px;">数据加载失败，请刷新重试</div>';
+  });
+</script>
+    <script>
+        let currentSearch = '';
+        let activeFilter = 'all';
+        let activeTab = 'all';
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function highlightText(text, searchTerm) {
+            if (!searchTerm) return escapeHtml(text);
+            const regex = new RegExp('(' + escapeHtml(searchTerm).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+            return escapeHtml(text).replace(regex, '<span class="card-highlight">$1</span>');
+        }
+
+        function getFilteredAnnouncements() {
+            return window.ANNOUNCEMENTS_DATA.filter(a => {
+                if (activeTab !== 'all' && a.server !== activeTab) return false;
+                if (activeFilter !== 'all' && a.server !== activeFilter) return false;
+                if (currentSearch) {
+                    const searchLower = currentSearch.toLowerCase();
+                    return a.title.toLowerCase().includes(searchLower) ||
+                           a.content.toLowerCase().includes(searchLower) ||
+                           a.date.includes(searchLower);
+                }
+                return true;
+            });
+        }
+
+        let currentPage = 1;
+        const ITEMS_PER_PAGE = 21;
+
+        function renderAnnouncements() {
+            const grid = document.getElementById('announcementsGrid');
+            const filtered = getFilteredAnnouncements();
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('paginationNav').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('paginationNav').style.display = 'block';
+
+            const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const visible = filtered.slice(start, start + ITEMS_PER_PAGE);
+
+            grid.innerHTML = visible.map(ann => `
+                <div class="announcement-card ${ann.server}" onclick="showDetail(${ann.id})">
+                    <span class="card-server-tag ${ann.server}">${ann.serverName}</span>
+                    <div class="card-title">${highlightText(ann.title, currentSearch)}</div>
+                    <div class="card-date">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        ${ann.date}
+                    </div>
+                    <div class="card-preview">${highlightText(ann.content.substring(0, 200) + '...', currentSearch)}</div>
+                </div>
+            `).join('');
+
+            renderPagination(filtered.length);
+        }
+
+        function renderPagination(totalItems) {
+            const nav = document.getElementById('paginationNav');
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+            if (totalPages <= 1) {
+                nav.innerHTML = '';
+                return;
+            }
+
+            let pages = [];
+            const maxShow = 5;
+            let start = Math.max(1, currentPage - 2);
+            let end = Math.min(totalPages, start + maxShow - 1);
+            if (end - start < maxShow - 1) start = Math.max(1, end - maxShow + 1);
+
+            if (start > 1) pages.push(1);
+            if (start > 2) pages.push('...');
+            for (let i = start; i <= end; i++) pages.push(i);
+            if (end < totalPages - 1) pages.push('...');
+            if (end < totalPages) pages.push(totalPages);
+
+            let html = '<div class="pagination-inner">';
+            html += `<button class="pg-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="gotoPage(${currentPage - 1})">上一页</button>`;
+
+            pages.forEach(p => {
+                if (p === '...') {
+                    html += '<span class="pg-ellipsis">...</span>';
+                } else {
+                    html += `<button class="pg-btn ${p === currentPage ? 'pg-active' : ''}" onclick="gotoPage(${p})">${p}</button>`;
+                }
+            });
+
+            html += `<button class="pg-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="gotoPage(${currentPage + 1})">下一页</button>`;
+            html += `<span class="pg-info">第${currentPage}/${totalPages}页 共${totalItems}条</span>`;
+            html += `<input type="number" class="pg-jump-input" id="jumpInput" min="1" max="${totalPages}" placeholder="页码">`;
+            html += `<button class="pg-btn" onclick="jumpToPage()">跳转</button>`;
+            html += `<button class="pg-btn pg-last" onclick="gotoPage(${totalPages})">尾页</button>`;
+            html += '</div>';
+
+            nav.innerHTML = html;
+        }
+
+        function gotoPage(p) {
+            const filtered = getFilteredAnnouncements();
+            const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+            if (p < 1 || p > totalPages) return;
+            currentPage = p;
+            renderAnnouncements();
+            document.getElementById('announcementsGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function jumpToPage() {
+            const input = document.getElementById('jumpInput');
+            if (!input) return;
+            const p = parseInt(input.value, 10);
+            if (isNaN(p)) return;
+            gotoPage(p);
+        }
+
+
+        function updateStats() {
+            const classic = window.ANNOUNCEMENTS_DATA.filter(a => a.server === 'classic').length;
+            const regular = window.ANNOUNCEMENTS_DATA.filter(a => a.server === 'regular').length;
+            const nostalgic = window.ANNOUNCEMENTS_DATA.filter(a => a.server === 'nostalgic').length;
+            const total = window.ANNOUNCEMENTS_DATA.length;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('classicCount').textContent = classic;
+            document.getElementById('regularCount').textContent = regular;
+            document.getElementById('nostalgicCount').textContent = nostalgic;
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const tab = btn.dataset.tab;
+                let count = 0;
+                if (tab === 'all') count = total;
+                else count = window.ANNOUNCEMENTS_DATA.filter(a => a.server === tab).length;
+                btn.querySelector('.badge').textContent = count;
+            });
+        }
+
+        function performSearch() {
+            currentSearch = document.getElementById('searchInput').value.trim();
+            currentPage = 1;
+            renderAnnouncements();
+        }
+
+        function handleJumpKey(e) {
+            if (e.key === 'Enter') jumpToPage();
+        }
+
+
+
+        function switchTab(btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeTab = btn.dataset.tab;
+            currentPage = 1;
+            renderAnnouncements();
+            updateHeroBackground();
+        }
+
+function updateHeroBackground() {
+    const hero = document.getElementById('heroBanner');
+    if (!hero) return;
+    hero.classList.remove('bg-all', 'bg-classic', 'bg-regular', 'bg-nostalgic');
+    switch(activeTab) {
+        case 'classic': hero.classList.add('bg-classic'); break;
+        case 'regular': hero.classList.add('bg-regular'); break;
+        case 'nostalgic': hero.classList.add('bg-nostalgic'); break;
+        default: hero.classList.add('bg-all');
+    }
+}
+
+        function showDetail(id) {
+            const ann = window.ANNOUNCEMENTS_DATA.find(a => a.id === id);
+            if (!ann) return;
+
+            document.getElementById('modalTitle').textContent = ann.title;
+            document.getElementById('modalDate').textContent = ann.date;
+            document.getElementById('modalServer').textContent = ann.serverName;
+            
+            let contentHtml = ann.content.replace(/\n/g, '<br>');
+            
+            // 高亮搜索关键词
+            if (currentSearch) {
+                const keywords = currentSearch.split(/\s+/).filter(k => k.length > 0);
+                keywords.forEach(kw => {
+                    const esc = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp('(' + esc + ')', 'gi');
+                    contentHtml = contentHtml.replace(regex, '<mark class="highlight">$1</mark>');
+                });
+            }
+            
+            document.getElementById('modalBody').innerHTML = contentHtml;
+            document.getElementById('detailModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // 自动滚动到第一个高亮词
+            if (currentSearch) {
+                setTimeout(() => {
+                    const firstMark = document.querySelector('#modalBody mark.highlight');
+                    if (firstMark) {
+                        firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+            }
+        }
+
+        function closeModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('detailModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            currentSearch = e.target.value.trim();
+            currentPage = 1;
+            renderAnnouncements();
+        });
+
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        // Initialization deferred until data is loaded via fetch
+        window._deferredInit = function() { updateStats(); renderAnnouncements(); updateHeroBackground(); };
+    </script>
+</body>
+</html>
