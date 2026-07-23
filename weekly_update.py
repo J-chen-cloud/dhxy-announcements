@@ -298,26 +298,107 @@ def main():
         log(f'更新后总计: {len(data)} 条')
         
         # ═══ 自动部署到 Cloudflare Pages ═══
+        log(f'\n[DEPLOY] 开始自动部署... 数据量: {len(data)} 条')
         try:
-            # 同步最新数据到 dist/ 目录
-            json_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'announcements_data.json')
-            dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
-            json_dst = os.path.join(dist_dir, 'announcements_data.json')
-            if os.path.exists(json_src) and os.path.exists(dist_dir):
-                shutil.copy2(json_src, json_dst)
-                log('已同步 announcements_data.json 到 dist/ 目录')
+            import subprocess
+            import base64
             
-            # 调用 Cloudflare Pages 部署脚本
-            deploy_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cf_deploy.py')
-            if os.path.exists(deploy_script):
-                log('正在自动部署到 Cloudflare Pages...')
-                import subprocess
-                result = subprocess.run([sys.executable, deploy_script], capture_output=True, text=True, timeout=300)
-                log(result.stdout)
-                if result.returncode != 0:
-                    log(f'部署输出: {result.stderr}')
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            dist_dir = os.path.join(base_dir, 'dist')
+            
+            # 同步最新数据到 dist/
+            json_src = os.path.join(base_dir, 'announcements_data.json')
+            if os.path.exists(json_src) and os.path.exists(dist_dir):
+                shutil.copy2(json_src, os.path.join(dist_dir, 'announcements_data.json'))
+                log('[DEPLOY] 已同步 announcements_data.json 到 dist/')
+            
+            # === 方法1: git push ===
+            git_ok = False
+            git_path = shutil.which('git')
+            log(f'[DEPLOY] git path: {git_path}')
+            
+            if git_path:
+                subprocess.run(['git', 'config', 'user.email', 'bot@dhdysy.app'], cwd=base_dir, capture_output=True, text=True, timeout=10)
+                subprocess.run(['git', 'config', 'user.name', 'AutoBot'], cwd=base_dir, capture_output=True, text=True, timeout=10)
+                
+                add_r = subprocess.run(['git', 'add', 'dist/announcements_data.json', 'announcements_data.json', 'announcements_data.js'], cwd=base_dir, capture_output=True, text=True, timeout=60)
+                log(f'[DEPLOY] git add result: {add_r.returncode}')
+                
+                diff_r = subprocess.run(['git', 'diff', '--cached', '--quiet'], cwd=base_dir, timeout=10)
+                log(f'[DEPLOY] git diff returncode: {diff_r.returncode}')
+                if diff_r.returncode == 0:
+                    log('[DEPLOY] No changes to commit')
+                    git_ok = True
+                else:
+                    commit_r = subprocess.run(['git', 'commit', '-m', 'auto: weekly update'], cwd=base_dir, capture_output=True, text=True, timeout=30)
+                    log(f'[DEPLOY] git commit: {commit_r.returncode}')
+                    push_r = subprocess.run(['git', 'push', 'origin', 'main'], cwd=base_dir, capture_output=True, text=True, timeout=120)
+                    log(f'[DEPLOY] git push returncode: {push_r.returncode}')
+                    log(f'[DEPLOY] git push stdout: {push_r.stdout[:400] if push_r.stdout else "empty"}')
+                    log(f'[DEPLOY] git push stderr: {push_r.stderr[:400] if push_r.stderr else "empty"}')
+                    if push_r.returncode == 0:
+                        log('[DEPLOY] Git push OK!')
+                        git_ok = True
+            
+            # === 方法2: GitHub API (不依赖 git 命令) ===
+            if not git_ok:
+                log('[DEPLOY] Git push failed or unavailable, trying GitHub API...')
+                token = None
+                git_config = os.path.join(base_dir, '.git', 'config')
+                if os.path.exists(git_config):
+                    with open(git_config, 'r', encoding='utf-8') as f:
+                        cfg = f.read()
+                    m = re.search(r'\[remote "origin"\].*?url\s*=\s*https://[^:]+:([a-zA-Z0-9_\-]+)@', cfg, re.DOTALL)
+                    if m:
+                        token = m.group(1)
+                        log(f'[DEPLOY] Token found: {token[:4]}****{token[-4:]}')
+                    else:
+                        log('[DEPLOY] Token not found in .git/config')
+                else:
+                    log(f'[DEPLOY] .git/config not found')
+                
+                if token:
+                    headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+                    json_path = os.path.join(dist_dir, 'announcements_data.json')
+                    if not os.path.exists(json_path):
+                        json_path = os.path.join(base_dir, 'announcements_data.json')
+                    
+                    if os.path.exists(json_path):
+                        with open(json_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        
+                        sha = None
+                        try:
+                            sha_r = requests.get('https://api.github.com/repos/J-chen-cloud/dhxy-announcements/contents/dist/announcements_data.json', headers=headers, timeout=30)
+                            log(f'[DEPLOY] GitHub GET SHA: {sha_r.status_code}')
+                            if sha_r.status_code == 200:
+                                sha = sha_r.json().get('sha')
+                        except Exception as e2:
+                            log(f'[DEPLOY] GET SHA error: {str(e2)[:200]}')
+                        
+                        payload = {
+                            'message': 'auto: weekly update',
+                            'content': base64.b64encode(content.encode('utf-8')).decode('utf-8'),
+                            'branch': 'main'
+                        }
+                        if sha:
+                            payload['sha'] = sha
+                        
+                        try:
+                            put_r = requests.put('https://api.github.com/repos/J-chen-cloud/dhxy-announcements/contents/dist/announcements_data.json', headers=headers, json=payload, timeout=60)
+                            log(f'[DEPLOY] GitHub PUT: {put_r.status_code}')
+                            if put_r.status_code in [200, 201]:
+                                log('[DEPLOY] GitHub API upload OK!')
+                            else:
+                                log(f'[DEPLOY] GitHub API failed: {put_r.text[:400]}')
+                        except Exception as e2:
+                            log(f'[DEPLOY] PUT error: {str(e2)[:200]}')
+                    else:
+                        log(f'[DEPLOY] JSON not found: {json_path}')
+                else:
+                    log('[DEPLOY] No token, cannot deploy')
         except Exception as e:
-            log(f'自动部署跳过: {e}')
+            log(f'[DEPLOY] Exception: {str(e)[:500]}')
         # ═══════════════════════════
     else:
         log('\n暂无新公告需要添加')
