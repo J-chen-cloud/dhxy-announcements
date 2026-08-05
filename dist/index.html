@@ -773,7 +773,7 @@ fetch('announcements_data.json?v=8')
                 <div class="announcement-card ${ann.server}" onclick="showDetail(${ann.id})">
                     <span class="card-server-tag ${ann.server}">${ann.serverName}</span>
                     <div class="card-title">${highlightText(ann.title, currentSearch)}</div>
-                    ${ann.url ? `<a href="${ann.url}" target="_blank" rel="noopener" class="card-source-link" onclick="event.stopPropagation()">官网原文 ↗</a>` : ''}
+                    ${(ann.url && ann.date >= '2026-05-28') ? `<a href="${ann.url}" target="_blank" rel="noopener" class="card-source-link" onclick="event.stopPropagation()">官网原文 ↗</a>` : ''}
                     <div class="card-date">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
