@@ -239,12 +239,67 @@ def fetch_classic_detail(url):
     return clean_text(text)[:6000] if text else ''
 
 
+# ───── 辅助：检查本周是否已全部更新 ─────
+def check_weekly_complete(data):
+    """检查经典版/常规服/怀旧服是否都有本周的公告"""
+    from datetime import datetime, timedelta
+    
+    if not data:
+        return False, []
+    
+    # 找到三个版本的最新公告日期
+    latest_dates = {}
+    for ann in data:
+        server = ann.get('server', '')
+        if server and server not in latest_dates:
+            latest_dates[server] = ann.get('date', '')
+    
+    # 检查三个版本是否都有公告（英文 server 值）
+    servers_needed = ['classic', 'regular', 'nostalgic']
+    missing = [s for s in servers_needed if s not in latest_dates]
+    
+    if missing:
+        return False, missing
+    
+    # 检查最新公告日期是否在本周（最近7天内）
+    latest_date_str = max(latest_dates.values()) if latest_dates else ''
+    if latest_date_str:
+        try:
+            today = datetime.now()
+            # 尝试解析不同格式的日期
+            for fmt in ['%Y年%m月%d日', '%Y-%m-%d', '%Y.%m.%d']:
+                try:
+                    latest_date = datetime.strptime(latest_date_str, fmt)
+                    break
+                except:
+                    continue
+            else:
+                return False, missing
+            
+            # 如果最新公告日期在最近7天内，认为已更新
+            if (today - latest_date).days <= 7:
+                return True, []
+        except Exception as e:
+            log(f'[WARN] 日期解析失败: {e}')
+    
+    return False, missing
+
 # ───── 主流程 ─────
 
 def main():
     log('=== 大话西游2 维护公告自动更新 ===')
     data = load_data()
     log(f'现有数据: {len(data)} 条')
+    
+    # 智能检测：如果三版本都已更新，跳过
+    complete, missing = check_weekly_complete(data)
+    if complete:
+        log('')
+        log('[CHECK] 三版本均已更新本周公告，跳过检索。')
+        log('[CHECK] 如需强制检查，请手动运行。')
+        return 0
+    elif missing:
+        log(f'[CHECK] 缺少版本: {missing}，继续检索...')
 
     added = []
 
