@@ -261,28 +261,19 @@ def check_weekly_complete(data):
     if missing:
         return False, missing
     
-    # 检查最新公告日期是否在本周（最近7天内）
-    latest_date_str = max(latest_dates.values()) if latest_dates else ''
-    if latest_date_str:
-        try:
-            today = datetime.now()
-            # 尝试解析不同格式的日期
-            for fmt in ['%Y年%m月%d日', '%Y-%m-%d', '%Y.%m.%d']:
-                try:
-                    latest_date = datetime.strptime(latest_date_str, fmt)
-                    break
-                except:
-                    continue
-            else:
-                return False, missing
-            
-            # 如果最新公告日期在最近7天内，认为已更新
-            if (today - latest_date).days <= 7:
-                return True, []
-        except Exception as e:
-            log(f'[WARN] 日期解析失败: {e}')
+    # 检查每个版本的最新公告日期是否 >= 上周四（本周维护日）
+    today = datetime.now()
+    days_since_thursday = (today.weekday() - 3) % 7
+    last_thursday = (today - timedelta(days=days_since_thursday)).strftime('%Y-%m-%d')
     
-    return False, missing
+    missing = []
+    for s in servers_needed:
+        if s not in latest_dates:
+            missing.append(s)
+        elif latest_dates[s] < last_thursday:
+            missing.append(s)
+    
+    return (len(missing) == 0, missing)
 
 # ───── 主流程 ─────
 
@@ -399,57 +390,68 @@ def main():
             if not git_ok:
                 log('[DEPLOY] Git push failed or unavailable, trying GitHub API...')
                 token = None
-                git_config = os.path.join(base_dir, '.git', 'config')
-                if os.path.exists(git_config):
-                    with open(git_config, 'r', encoding='utf-8') as f:
-                        cfg = f.read()
-                    m = re.search(r'\[remote "origin"\].*?url\s*=\s*https://[^:]+:([a-zA-Z0-9_\-]+)@', cfg, re.DOTALL)
-                    if m:
-                        token = m.group(1)
-                        log(f'[DEPLOY] Token found: {token[:4]}****{token[-4:]}')
-                    else:
-                        log('[DEPLOY] Token not found in .git/config')
-                else:
-                    log(f'[DEPLOY] .git/config not found')
                 
-                if token:
-                    headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
-                    json_path = os.path.join(dist_dir, 'announcements_data.json')
-                    if not os.path.exists(json_path):
-                        json_path = os.path.join(base_dir, 'announcements_data.json')
-                    
-                    if os.path.exists(json_path):
-                        with open(json_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                        
-                        sha = None
-                        try:
-                            sha_r = requests.get('https://api.github.com/repos/J-chen-cloud/dhxy-announcements/contents/dist/announcements_data.json', headers=headers, timeout=30)
-                            log(f'[DEPLOY] GitHub GET SHA: {sha_r.status_code}')
-                            if sha_r.status_code == 200:
-                                sha = sha_r.json().get('sha')
-                        except Exception as e2:
-                            log(f'[DEPLOY] GET SHA error: {str(e2)[:200]}')
-                        
-                        payload = {
-                            'message': 'auto: weekly update',
-                            'content': base64.b64encode(content.encode('utf-8')).decode('utf-8'),
-                            'branch': 'main'
-                        }
-                        if sha:
-                            payload['sha'] = sha
-                        
-                        try:
-                            put_r = requests.put('https://api.github.com/repos/J-chen-cloud/dhxy-announcements/contents/dist/announcements_data.json', headers=headers, json=payload, timeout=60)
-                            log(f'[DEPLOY] GitHub PUT: {put_r.status_code}')
-                            if put_r.status_code in [200, 201]:
-                                log('[DEPLOY] GitHub API upload OK!')
-                            else:
-                                log(f'[DEPLOY] GitHub API failed: {put_r.text[:400]}')
-                        except Exception as e2:
-                            log(f'[DEPLOY] PUT error: {str(e2)[:200]}')
+                # 优先从环境变量读取 Token
+                env_token = os.environ.get('GITHUB_TOKEN')
+                if env_token:
+                    token = env_token
+                    log(f'[DEPLOY] Token loaded from environment: {token[:4]}****{token[-4:]}')
+                
+                # 环境变量中没有，再尝试从 .git/config 读取
+                if not token:
+                    git_config = os.path.join(base_dir, '.git', 'config')
+                    if os.path.exists(git_config):
+                        with open(git_config, 'r', encoding='utf-8') as f:
+                            cfg = f.read()
+                        m = re.search(r'\[remote "origin"\].*?url\s*=\s*https://[^:]+:([a-zA-Z0-9_\-]+)@', cfg, re.DOTALL)
+                        if m:
+                            token = m.group(1)
+                            log(f'[DEPLOY] Token found in .git/config: {token[:4]}****{token[-4:]}')
+                        else:
+                            log('[DEPLOY] Token not found in .git/config')
                     else:
-                        log(f'[DEPLOY] JSON not found: {json_path}')
+                        log(f'[DEPLOY] .git/config not found')
+                
+                github_repo = os.environ.get('GITHUB_REPO', 'J-chen-cloud/dhxy-announcements')
+                github_branch = os.environ.get('GITHUB_BRANCH', 'main')
+                
+                headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github.v3+json'}
+                json_path = os.path.join(dist_dir, 'announcements_data.json')
+                if not os.path.exists(json_path):
+                    json_path = os.path.join(base_dir, 'announcements_data.json')
+                
+                if os.path.exists(json_path):
+                    with open(json_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    sha = None
+                    try:
+                        sha_r = requests.get(f'https://api.github.com/repos/{github_repo}/contents/dist/announcements_data.json', headers=headers, timeout=30)
+                        log(f'[DEPLOY] GitHub GET SHA: {sha_r.status_code}')
+                        if sha_r.status_code == 200:
+                            sha = sha_r.json().get('sha')
+                    except Exception as e2:
+                        log(f'[DEPLOY] GET SHA error: {str(e2)[:200]}')
+                    
+                    payload = {
+                        'message': 'auto: weekly update',
+                        'content': base64.b64encode(content.encode('utf-8')).decode('utf-8'),
+                        'branch': github_branch
+                    }
+                    if sha:
+                        payload['sha'] = sha
+                    
+                    try:
+                        put_r = requests.put(f'https://api.github.com/repos/{github_repo}/contents/dist/announcements_data.json', headers=headers, json=payload, timeout=60)
+                        log(f'[DEPLOY] GitHub PUT: {put_r.status_code}')
+                        if put_r.status_code in [200, 201]:
+                            log('[DEPLOY] GitHub API upload OK!')
+                        else:
+                            log(f'[DEPLOY] GitHub API failed: {put_r.text[:400]}')
+                    except Exception as e2:
+                        log(f'[DEPLOY] PUT error: {str(e2)[:200]}')
+                else:
+                    log(f'[DEPLOY] JSON not found: {json_path}')
                 else:
                     log('[DEPLOY] No token, cannot deploy')
         except Exception as e:
