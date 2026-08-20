@@ -688,7 +688,7 @@ window.ANNOUNCEMENTS_DATA = [];
 let isDataLoaded = false;
 
 console.log('FETCH: Starting...');
-fetch('announcements_data.json?v=8')
+fetch('announcements_data.json?v=9')
   .then(r => {
     console.log('FETCH: Response received, status=' + r.status);
     if (!r.ok) throw new Error('HTTP ' + r.status);
