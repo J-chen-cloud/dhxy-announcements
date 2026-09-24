@@ -452,8 +452,8 @@ def main():
                         log(f'[DEPLOY] PUT error: {str(e2)[:200]}')
                 else:
                     log(f'[DEPLOY] JSON not found: {json_path}')
-                else:
-                    log('[DEPLOY] No token, cannot deploy')
+            else:
+                log('[DEPLOY] No token, cannot deploy')
         except Exception as e:
             log(f'[DEPLOY] Exception: {str(e)[:500]}')
         # ═══════════════════════════
