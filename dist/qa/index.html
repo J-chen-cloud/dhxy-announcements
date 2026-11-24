@@ -71,6 +71,9 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 .day{display:flex;align-items:center;gap:12px;margin:26px 0 14px;color:#9a9080;font-size:12.5px;letter-spacing:.06em}
 .day::before,.day::after{content:"";height:1px;background:linear-gradient(90deg,transparent,#ded4c0,transparent);flex:1}
 .day:first-child{margin-top:4px}
+.bigdiv{display:flex;align-items:center;gap:14px;margin:30px 0 12px;color:#96712f;font-size:12.5px;letter-spacing:.04em}
+.bigdiv::before,.bigdiv::after{content:"";height:3px;background:linear-gradient(90deg,transparent,#d8a94e,transparent);flex:1;border-radius:2px}
+.bigdiv span{white-space:nowrap;border:1px dashed #dcb56a;background:#fff7e6;border-radius:999px;padding:3px 14px}
 
 .qa{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-bottom:14px;scroll-margin-top:150px}
 .card{border-radius:13px;padding:14px 16px 15px;border:1px solid var(--line);background:var(--card);box-shadow:0 2px 10px rgba(70,50,20,.045);position:relative;min-width:0}
@@ -170,7 +173,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 <button id="topBtn" title="回到顶部">↑</button>
 <div class="toast" id="toast"></div>
 
-<script src="qa_data.js?v=20261124090453"></script>
+<script src="qa_data.js?v=20261124092525"></script>
 <script>
 (function(){
   "use strict";
@@ -322,8 +325,17 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
       else { base = base.filter(function(e){ return state.server==="-"? !e.server : e.server===state.server; }); }
     }
     var toks=tokens();
+    state.confCount=0; state.uncCount=0;
     if(!toks.length){ state.filtered=base; return; }
-    state.filtered = base.filter(function(e){ return toks.every(function(t){ return e._s.indexOf(t)!==-1; }); });
+    var match=function(e){ return toks.every(function(t){ return e._s.indexOf(t)!==-1; }); };
+    var conf=base.filter(function(e){ return !e.unconfirmed && match(e); });
+    // 搜索时把所有「历史未确认版本」（经典版+免费版）一起带出来，放在确认结果之后
+    var pool=tabEntries("classic").concat(tabEntries("free"));
+    var seen={}, unc=[];
+    pool.forEach(function(e){ if(e.unconfirmed && !seen[e.id] && match(e)){ seen[e.id]=1; unc.push(e); } });
+    unc.sort(function(a,b){ return b.ts-a.ts; });
+    state.confCount=conf.length; state.uncCount=unc.length;
+    state.filtered = unc.length ? conf.concat([{__divider:true}], unc) : conf;
   }
 
   function render(reset){
@@ -334,10 +346,16 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
     var html="", lastDate=null;
     var slice=list.slice(0,state.shown);
     slice.forEach(function(e){
+      if(e.__divider){
+        html+='<div class="bigdiv"><span>以下为「历史未确认版本」问答（含经典版 / 免费版，未标注版本）</span></div>';
+        lastDate=null;
+        return;
+      }
       if(e.date!==lastDate){ html+='<div class="day"><span>'+esc(e.date)+'</span></div>'; lastDate=e.date; }
       html+=buildCard(e);
     });
-    if(!list.length){
+    var realCount=list.filter(function(e){ return !e.__divider; }).length;
+    if(!realCount){
       html='<div class="empty"><div class="big">🔍</div><div>没有找到包含 <b>'+esc(state.q)+'</b> 的问答</div><div style="margin-top:8px;font-size:12.5px">试试更短的关键词，或切换到另一个群</div></div>';
     }
     $list.innerHTML=html;
@@ -345,7 +363,8 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 
     var grp=GROUPS[state.tab]||{};
     if(toks.length){
-      $result.innerHTML='找到 <b>'+list.length+'</b> 条问答'+(list.length>state.shown?'，已显示 '+state.shown+' 条':'');
+      var uncN=state.uncCount||0;
+      $result.innerHTML='找到 <b>'+(state.confCount+uncN)+'</b> 条问答'+(uncN?'（历史未确认版本 <b>'+uncN+'</b> 条）':'')+(realCount>state.shown?' · 滚动加载更多':'');
     }else{
       var lbl = state.server==='-'?'未标注':state.server==='c'?'已确认版本':state.server==='u'?'历史未确认版本':state.server;
       $result.innerHTML='共 <b>'+list.length+'</b> 条问答 · 按时间倒序'+(state.server?' · '+esc(lbl):'');
