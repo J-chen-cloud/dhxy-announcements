@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大话西游2 · 游戏设置问答存档</title>
+<style>
+:root{
+  --crimson:#8B0000; --crimson-2:#a31414; --gold:#C9A94E; --paper:#F7F3E8;
+  --ink:#1f1f1f; --muted:#8a8378; --line:#e6ddc9; --card:#fffdf8;
+  --q:#2f5d8a; --q-bg:#f1f6fb; --a-bg:#fff7fa; --pink:#C2185B; --pink-2:#d81b60;
+  --green:#2e7d5b;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--paper); color:var(--ink); line-height:1.75; -webkit-font-smoothing:antialiased;
+}
+.hero{
+  background:linear-gradient(135deg,#2C1810 0%,#4A1A1A 55%,#1a1a1a 100%);
+  color:#fff; padding:44px 20px 38px; text-align:center; position:relative; overflow:hidden;
+}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 20% 0,rgba(201,169,78,.18),transparent 45%),radial-gradient(circle at 85% 100%,rgba(139,0,0,.35),transparent 50%);pointer-events:none}
+.hero .inner{position:relative;z-index:1;max-width:1100px;margin:0 auto}
+.hero .kicker{display:inline-block;border:1px solid rgba(201,169,78,.65);color:var(--gold);border-radius:999px;padding:4px 16px;font-size:12px;letter-spacing:.12em;margin-bottom:14px}
+.hero h1{font-size:clamp(22px,3.2vw,34px);font-weight:700;letter-spacing:.02em}
+.hero h1 span{color:var(--gold)}
+.hero p.sub{margin-top:10px;color:rgba(255,255,255,.72);font-size:13px}
+.hero .stats{margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.hero .stat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:7px 14px;font-size:12px;color:rgba(255,255,255,.82)}
+.hero .stat b{color:var(--gold);font-size:15px;margin-right:3px}
+
+.toolbar{position:sticky;top:0;z-index:30;background:rgba(247,243,232,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);box-shadow:0 4px 18px rgba(60,40,20,.06)}
+.toolbar-inner{max-width:1100px;margin:0 auto;padding:14px 20px 12px}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tab{
+  appearance:none;border:2px solid var(--crimson);background:#fff;color:var(--crimson);
+  padding:9px 20px;border-radius:9px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;
+  transition:.18s;display:flex;align-items:center;gap:8px;
+}
+.tab:hover{background:#f8eded}
+.tab.active{background:var(--crimson);color:#fff;box-shadow:0 4px 14px rgba(139,0,0,.22)}
+.tab .count{font-size:11px;font-weight:500;background:rgba(0,0,0,.06);border-radius:999px;padding:1px 8px}
+.tab.active .count{background:rgba(255,255,255,.18)}
+
+.searchrow{display:flex;gap:10px;align-items:center}
+.searchbox{position:relative;flex:1}
+.searchbox svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:#a99f8e}
+#search{
+  width:100%;padding:13px 96px 13px 42px;border:1px solid #d9cfba;border-radius:11px;background:#fff;
+  font-size:15px;font-family:inherit;color:var(--ink);outline:none;transition:.18s;
+}
+#search:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,169,78,.18)}
+#search::placeholder{color:#b0a795}
+.searchbox .hint{position:absolute;right:44px;top:50%;transform:translateY(-50%);font-size:11px;color:#b3aa99;border:1px solid #ddd3c0;border-radius:5px;padding:1px 6px;background:#faf7ef}
+#clearBtn{display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:#eee7d8;color:#7c7364;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1}
+#clearBtn:hover{background:#e2d8c3}
+.subrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px;flex-wrap:wrap;min-height:20px}
+.result{font-size:12.5px;color:var(--muted)}
+.result b{color:var(--crimson)}
+.filters{display:none;gap:7px;flex-wrap:wrap}
+.filters.show{display:flex}
+.chip{border:1px solid #d8cdb7;background:#fff;color:#6f6657;border-radius:999px;padding:3px 12px;font-size:12px;cursor:pointer;font-family:inherit;transition:.15s}
+.chip:hover{border-color:var(--gold)}
+.chip.on{background:var(--gold);border-color:var(--gold);color:#fff}
+.tips{font-size:11.5px;color:#a99f8e}
+.tips kbd{font-family:inherit;border:1px solid #ddd3c0;border-bottom-width:2px;border-radius:4px;padding:0 5px;background:#fff;color:#8d8371;font-size:10.5px}
+
+main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
+.day{display:flex;align-items:center;gap:12px;margin:26px 0 14px;color:#9a9080;font-size:12.5px;letter-spacing:.06em}
+.day::before,.day::after{content:"";height:1px;background:linear-gradient(90deg,transparent,#ded4c0,transparent);flex:1}
+.day:first-child{margin-top:4px}
+
+.qa{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-bottom:14px;scroll-margin-top:150px}
+.card{border-radius:13px;padding:14px 16px 15px;border:1px solid var(--line);background:var(--card);box-shadow:0 2px 10px rgba(70,50,20,.045);position:relative;min-width:0}
+.qcard{background:linear-gradient(180deg,#fbfdff,var(--q-bg));border-left:3px solid #7ba0c4}
+.acard{background:linear-gradient(180deg,#fffdfd,var(--a-bg));border-right:3px solid #e3a8bd}
+.acard.pending{background:#fbfaf6;border-right:3px solid #d8d0c0;display:flex;align-items:center;justify-content:center;color:#a89f8e;font-size:13px;min-height:88px}
+.meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px}
+.badge{font-size:10px;font-weight:700;letter-spacing:.08em;border-radius:4px;padding:1px 7px;line-height:1.6}
+.badge.q{background:#dce9f6;color:var(--q)}
+.badge.a{background:#fbe0ea;color:var(--pink)}
+.name{font-size:11px;line-height:1.4;font-weight:600;color:#7b8590;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acard .name{color:var(--pink-2);font-weight:700}
+.time{font-size:10.5px;color:#a9a294;font-variant-numeric:tabular-nums}
+.server{font-size:10px;border:1px solid #d6c9ae;color:#8f7c50;border-radius:999px;padding:0 7px;line-height:1.7;background:#fffaf0}
+.body{font-size:13.5px;line-height:1.8;color:#2c2a26;word-break:break-word;white-space:pre-wrap}
+.body a{color:#2f6f9f;text-decoration:none;border-bottom:1px dotted #9dbdd6;word-break:break-all}
+.body a:hover{color:var(--crimson)}
+.body .att{display:inline-flex;align-items:center;gap:3px;font-size:12px;color:#8a7a5a;background:#fff8e8;border:1px solid #ead9b6;border-radius:5px;padding:0 6px;margin:2px 2px 2px 0;text-decoration:none;border-bottom:none}
+.body .att:hover{background:#fdf0d3;color:#7a6535}
+.acard .body{color:#3a2b31}
+.mark,.body mark{background:linear-gradient(180deg,transparent 52%,#ffe08a 52%);color:inherit;padding:0 1px;border-radius:2px}
+.qa.flash .card{animation:flash 1.25s ease}
+@keyframes flash{0%,100%{box-shadow:0 2px 10px rgba(70,50,20,.045)}35%{box-shadow:0 0 0 4px rgba(201,169,78,.5),0 4px 22px rgba(139,0,0,.16)}}
+
+.copy-link{position:absolute;top:11px;right:10px;border:none;background:transparent;color:#c3b9a5;cursor:pointer;font-size:10.5px;padding:2px 5px;border-radius:4px;opacity:0;transition:.15s;font-family:inherit}
+.card:hover .copy-link{opacity:1}
+.copy-link:hover{background:#f2ead9;color:#8d7c58}
+
+.more{display:block;margin:22px auto 6px;padding:11px 30px;border:1px solid #d3c7ae;background:#fffdf7;color:#7d7159;border-radius:10px;font-size:13px;font-family:inherit;cursor:pointer}
+.more:hover{border-color:var(--gold);color:#6b5a35}
+.sentinel{height:2px}
+.empty{text-align:center;padding:70px 20px;color:#a69d8c}
+.empty .big{font-size:38px;margin-bottom:10px;opacity:.55}
+.empty b{color:var(--crimson)}
+.foot{max-width:1100px;margin:18px auto 0;padding:24px 20px 40px;border-top:1px solid var(--line);color:#a2988a;font-size:12px;line-height:1.9;text-align:center}
+.foot b{color:#7f7462}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);background:#2f2a24;color:#fff;font-size:12.5px;padding:8px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s;z-index:99;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+#topBtn{position:fixed;right:22px;bottom:26px;width:40px;height:40px;border-radius:50%;border:1px solid #d9cdb6;background:rgba(255,253,247,.95);color:#8a7a5a;cursor:pointer;display:none;font-size:16px;box-shadow:0 4px 14px rgba(60,40,20,.12);z-index:40}
+#topBtn.show{display:block}
+
+@media (max-width:820px){
+  .qa{grid-template-columns:1fr;gap:8px}
+  .acard{border-right:none;border-left:3px solid #e3a8bd;margin-left:22px}
+  .acard.pending{margin-left:22px;min-height:64px}
+  .qcard{border-left:3px solid #7ba0c4}
+  .toolbar-inner{padding:11px 14px 10px}
+  .tab{padding:8px 14px;font-size:13.5px}
+  main{padding:18px 14px 6px}
+  .copy-link{opacity:1}
+  .tips{display:none}
+  .searchbox .hint{display:none}
+  #search{padding-right:40px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="inner">
+    <div class="kicker">大话西游2 · 内部知识存档</div>
+    <h1>游戏设置 <span>问答存档</span></h1>
+    <p class="sub">经典版 / 免费版（常规服 · 怀旧服）游戏设置确认群历史问答，支持关键词全文检索</p>
+    <div class="stats" id="heroStats"></div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <div class="tabs" id="tabs"></div>
+    <div class="searchrow">
+      <div class="searchbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="search" type="search" autocomplete="off" placeholder="搜索关键词，如：月卡、移民锁、鎏金宝鉴、召唤兽技能…">
+        <span class="hint" id="enterHint">Enter 跳转</span>
+        <button id="clearBtn" title="清空">×</button>
+      </div>
+    </div>
+    <div class="subrow">
+      <div class="result" id="result"></div>
+      <div class="filters" id="filters"></div>
+      <div class="tips"><kbd>/</kbd> 聚焦搜索 · <kbd>Enter</kbd> 下一个结果 · <kbd>Esc</kbd> 清空</div>
+    </div>
+  </div>
+</div>
+
+<main id="list"></main>
+<div class="sentinel" id="sentinel"></div>
+<footer class="foot">
+  <div><b>说明：</b>问答由群聊记录自动归集，「答」为胡宏伟、李昊霖、周国成、徐子健及其他同事的相关回复；一条提问对应多条回复时会依次展示。</div>
+  <div>内容仅供内部检索参考，具体设置以游戏内实际表现及官方公告为准。</div>
+  <div id="footMeta" style="margin-top:8px"></div>
+</footer>
+
+<button id="topBtn" title="回到顶部">↑</button>
+<div class="toast" id="toast"></div>
+
+<script src="qa_data.js?v=20261124071237"></script>
+<script>
+(function(){
+  "use strict";
+  var DATA = window.QA_DATA || {groups:{}};
+  var GROUPS = DATA.groups || {};
+  var ORDER = ["classic","free"];
+  var PAGE = 40;
+
+  var state = { tab:"classic", q:"", server:"", shown:PAGE, filtered:[], matchIndex:0 };
+
+  var $list = document.getElementById("list");
+  var $search = document.getElementById("search");
+  var $result = document.getElementById("result");
+  var $tabs = document.getElementById("tabs");
+  var $filters = document.getElementById("filters");
+  var $clear = document.getElementById("clearBtn");
+  var $sentinel = document.getElementById("sentinel");
+  var $top = document.getElementById("topBtn");
+  var $toast = document.getElementById("toast");
+
+  function esc(s){
+    return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function fmtDate(d){ return d ? d.slice(5).replace("-","/") : ""; }
+  function tokens(){ return state.q.trim().toLowerCase().split(/\s+/).filter(Boolean); }
+
+  function initData(){
+    ORDER.forEach(function(g){
+      var grp = GROUPS[g];
+      if(!grp) return;
+      grp.entries.forEach(function(e){
+        e._s = (e.question + " " + e.answers.map(function(a){return a.text+" "+a.name;}).join(" ") + " " + e.asker + " " + e.date + " " + (e.server||"")).toLowerCase();
+      });
+    });
+  }
+
+  function tabEntries(g){ return (GROUPS[g] && GROUPS[g].entries) || []; }
+
+  function renderTabs(){
+    $tabs.innerHTML = ORDER.map(function(g){
+      var grp = GROUPS[g] || {name:g, entryCount:0};
+      return '<button class="tab'+(state.tab===g?' active':'')+'" data-tab="'+g+'">'+
+        (g==="classic"?"经典版":"免费版")+'游戏设置群<span class="count">'+grp.entryCount+'</span></button>';
+    }).join("");
+  }
+
+  function renderHero(){
+    var t=0,a=0;
+    ORDER.forEach(function(g){ var grp=GROUPS[g]; if(grp){ t+=grp.entryCount; a+=grp.answeredCount; }});
+    document.getElementById("heroStats").innerHTML =
+      '<span class="stat"><b>'+t+'</b>条问答</span>'+
+      '<span class="stat"><b>'+a+'</b>条已回复</span>'+
+      '<span class="stat"><b>'+DATA.experts.length+'</b>位主要答复人</span>'+
+      '<span class="stat">更新于 '+esc(DATA.generatedAt)+'</span>';
+    document.getElementById("footMeta").textContent = "数据更新：" + DATA.generatedAt + " · 共 " + t + " 条问答";
+  }
+
+  function renderFilters(){
+    if(state.tab!=="free"){ $filters.classList.remove("show"); $filters.innerHTML=""; return; }
+    var opts=[["","全部"],["常规服","常规服"],["怀旧服","怀旧服"],["-","未标注"]];
+    $filters.classList.add("show");
+    $filters.innerHTML = opts.map(function(o){
+      return '<button class="chip'+(state.server===o[0]?' on':'')+'" data-server="'+o[0]+'">'+o[1]+'</button>';
+    }).join("");
+  }
+
+  function linkify(text){
+    var s = esc(text);
+    var stash = [];
+    s = s.replace(/\[(https?:\/\/[^\s\]]+)\]/g, function(_,u){
+      stash.push('<a class="att" href="'+u+'" target="_blank" rel="noopener">📎 附件</a> ');
+      return '\u0001'+(stash.length-1)+'\u0001';
+    });
+    s = s.replace(/(https?:\/\/[^\s<"']+)/g, function(u){
+      var clean=u.replace(/[，。；、)）]+$/,"");
+      var tail=u.slice(clean.length);
+      return '<a href="'+clean+'" target="_blank" rel="noopener">'+clean+'</a>'+tail;
+    });
+    return s.replace(/\u0001(\d+)\u0001/g, function(_,i){ return stash[+i]; });
+  }
+
+  function highlightIn(root, toks){
+    if(!toks.length) return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var nodes=[], n;
+    while((n=walker.nextNode())) nodes.push(n);
+    nodes.forEach(function(node){
+      var text=node.nodeValue;
+      if(!text) return;
+      var lower=text.toLowerCase(), ranges=[];
+      toks.forEach(function(t){
+        var from=0, idx;
+        while((idx=lower.indexOf(t,from))!==-1){
+          ranges.push([idx,idx+t.length]); from=idx+t.length;
+        }
+      });
+      if(!ranges.length) return;
+      ranges.sort(function(a,b){return a[0]-b[0];});
+      var merged=[];
+      ranges.forEach(function(r){
+        var last=merged[merged.length-1];
+        if(last && r[0]<=last[1]) last[1]=Math.max(last[1],r[1]);
+        else merged.push([r[0],r[1]]);
+      });
+      var frag=document.createDocumentFragment(), pos=0;
+      merged.forEach(function(r){
+        if(r[0]>pos) frag.appendChild(document.createTextNode(text.slice(pos,r[0])));
+        var m=document.createElement("mark"); m.textContent=text.slice(r[0],r[1]); frag.appendChild(m);
+        pos=r[1];
+      });
+      if(pos<text.length) frag.appendChild(document.createTextNode(text.slice(pos)));
+      node.parentNode.replaceChild(frag,node);
+    });
+  }
+
+  function buildCard(e){
+    var answers = e.answers || [];
+    var answerHtml = answers.length ? answers.map(function(a){
+      return '<div class="meta" style="margin-bottom:6px"><span class="badge a">答</span><span class="name" title="'+esc(a.name)+'">'+esc(a.name)+'</span><span class="time">'+esc(fmtDate(a.date)+" "+a.time)+'</span></div>'+
+        '<div class="body" style="margin-bottom:10px">'+linkify(a.text)+'</div>';
+    }).join("") : '<div class="acard pending">待回复</div>';
+    var qcard = '<div class="card qcard">'+
+      '<button class="copy-link" data-copy="'+e.id+'" title="复制本条链接">链接</button>'+
+      '<div class="meta"><span class="badge q">问</span><span class="name" title="'+esc(e.asker)+'">'+esc(e.asker)+'</span>'+
+      '<span class="time">'+esc(fmtDate(e.date)+" "+e.time)+'</span>'+
+      (e.server?'<span class="server">'+esc(e.server)+'</span>':'')+'</div>'+
+      '<div class="body">'+linkify(e.question)+'</div></div>';
+    var acard = answers.length
+      ? '<div class="card acard">'+answerHtml+'</div>'
+      : '<div class="card acard pending">待回复</div>';
+    return '<article class="qa" id="'+e.id+'">'+qcard+acard+'</article>';
+  }
+
+  function compute(){
+    var base=tabEntries(state.tab);
+    if(state.server){
+      base = base.filter(function(e){ return state.server==="-"? !e.server : e.server===state.server; });
+    }
+    var toks=tokens();
+    if(!toks.length){ state.filtered=base; return; }
+    state.filtered = base.filter(function(e){ return toks.every(function(t){ return e._s.indexOf(t)!==-1; }); });
+  }
+
+  function render(reset){
+    if(reset){ state.shown=PAGE; state.matchIndex=0; }
+    compute();
+    var list=state.filtered;
+    var toks=tokens();
+    var html="", lastDate=null;
+    var slice=list.slice(0,state.shown);
+    slice.forEach(function(e){
+      if(e.date!==lastDate){ html+='<div class="day"><span>'+esc(e.date)+'</span></div>'; lastDate=e.date; }
+      html+=buildCard(e);
+    });
+    if(!list.length){
+      html='<div class="empty"><div class="big">🔍</div><div>没有找到包含 <b>'+esc(state.q)+'</b> 的问答</div><div style="margin-top:8px;font-size:12.5px">试试更短的关键词，或切换到另一个群</div></div>';
+    }
+    $list.innerHTML=html;
+    if(toks.length){ highlightIn($list,toks); }
+
+    var grp=GROUPS[state.tab]||{};
+    if(toks.length){
+      $result.innerHTML='找到 <b>'+list.length+'</b> 条问答'+(list.length>state.shown?'，已显示 '+state.shown+' 条':'');
+    }else{
+      $result.innerHTML='共 <b>'+list.length+'</b> 条问答 · 按时间倒序'+(state.server?' · '+esc(state.server==='-'?'未标注':state.server):'');
+    }
+    $clear.style.display = state.q ? "block" : "none";
+    var hint=document.getElementById("enterHint"); hint.style.display = (toks.length && list.length>1) ? "block" : "none";
+    updateUrl();
+  }
+
+  function updateUrl(){
+    var p=new URLSearchParams();
+    if(state.tab!=="classic") p.set("tab",state.tab);
+    if(state.q) p.set("q",state.q);
+    if(state.server) p.set("server",state.server);
+    var s=p.toString();
+    history.replaceState(null,"",location.pathname+(s?"?"+s:"")+location.hash);
+  }
+
+  function switchTab(g){
+    if(state.tab===g) return;
+    state.tab=g; state.server="";
+    renderTabs(); renderFilters(); render(true);
+    window.scrollTo({top:Math.max(0,document.querySelector(".toolbar").offsetTop-1),behavior:"smooth"});
+  }
+
+  function toast(msg){
+    $toast.textContent=msg; $toast.classList.add("show");
+    clearTimeout(toast._t); toast._t=setTimeout(function(){ $toast.classList.remove("show"); },1600);
+  }
+
+  // events
+  $tabs.addEventListener("click",function(ev){
+    var b=ev.target.closest("[data-tab]"); if(b) switchTab(b.dataset.tab);
+  });
+  $filters.addEventListener("click",function(ev){
+    var b=ev.target.closest("[data-server]"); if(!b) return;
+    state.server=b.dataset.server; renderFilters(); render(true);
+  });
+  var timer=null;
+  $search.addEventListener("input",function(){
+    clearTimeout(timer);
+    timer=setTimeout(function(){ state.q=$search.value; render(true); },110);
+  });
+  $search.addEventListener("keydown",function(ev){
+    if(ev.key==="Enter"){
+      ev.preventDefault();
+      var cards=$list.querySelectorAll(".qa");
+      if(!cards.length) return;
+      if(state.matchIndex>=cards.length) state.matchIndex=0;
+      var el=cards[state.matchIndex];
+      el.scrollIntoView({behavior:"smooth",block:"center"});
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+      state.matchIndex++;
+    }
+  });
+  $clear.addEventListener("click",function(){ $search.value=""; state.q=""; render(true); $search.focus(); });
+  document.addEventListener("keydown",function(ev){
+    if(ev.key==="/" && document.activeElement!==$search){ ev.preventDefault(); $search.focus(); $search.select(); }
+    if(ev.key==="Escape" && document.activeElement===$search){ $search.value=""; state.q=""; render(true); }
+  });
+  $list.addEventListener("click",function(ev){
+    var b=ev.target.closest("[data-copy]"); if(!b) return;
+    var url=location.origin+location.pathname+"#"+b.dataset.copy;
+    var done=function(){ toast("已复制本条问答链接"); };
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done,function(){ prompt("复制链接",url); }); }
+    else prompt("复制链接",url);
+  });
+  $top.addEventListener("click",function(){ window.scrollTo({top:0,behavior:"smooth"}); });
+  window.addEventListener("scroll",function(){ $top.classList.toggle("show",window.scrollY>700); },{passive:true});
+
+  var io = ("IntersectionObserver" in window) ? new IntersectionObserver(function(entries){
+    if(entries[0].isIntersecting && state.shown < state.filtered.length){
+      state.shown += PAGE; render(false);
+    }
+  },{rootMargin:"600px"}) : null;
+  if(io) io.observe($sentinel);
+  window.addEventListener("scroll",function(){
+    if(!io && state.shown < state.filtered.length && window.innerHeight+window.scrollY > document.body.offsetHeight-800){
+      state.shown += PAGE; render(false);
+    }
+  },{passive:true});
+
+  // boot
+  var qp=new URLSearchParams(location.search);
+  if(qp.get("tab") && GROUPS[qp.get("tab")]) state.tab=qp.get("tab");
+  if(qp.get("q")){ state.q=qp.get("q"); $search.value=state.q; }
+  if(qp.get("server") && state.tab==="free") state.server=qp.get("server");
+  initData(); renderHero(); renderTabs(); renderFilters(); render(true);
+
+  if(location.hash){
+    var target=document.getElementById(location.hash.slice(1));
+    if(target){
+      setTimeout(function(){
+        target.scrollIntoView({behavior:"smooth",block:"center"});
+        target.classList.add("flash");
+      },120);
+    }
+  }
+})();
+</script>
+</body>
+</html>
