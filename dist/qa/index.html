@@ -85,6 +85,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 .acard .name{color:var(--pink-2);font-weight:700}
 .time{font-size:10.5px;color:#a9a294;font-variant-numeric:tabular-nums}
 .server{font-size:10px;border:1px solid #d6c9ae;color:#8f7c50;border-radius:999px;padding:0 7px;line-height:1.7;background:#fffaf0}
+.unc{font-size:10px;line-height:1.7;color:#B26A00;border:1px dashed #E0B070;background:#FFF6E6;border-radius:999px;padding:0 7px;letter-spacing:.02em}
 .body{font-size:13.5px;line-height:1.8;color:#2c2a26;word-break:break-word;white-space:pre-wrap}
 .body a{color:#2f6f9f;text-decoration:none;border-bottom:1px dotted #9dbdd6;word-break:break-all}
 .body a:hover{color:var(--crimson)}
@@ -133,7 +134,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   <div class="inner">
     <div class="kicker">大话西游2 · 内部知识存档</div>
     <h1>游戏设置 <span>问答存档</span></h1>
-    <p class="sub">经典版 / 免费版（常规服 · 怀旧服）游戏设置确认群历史问答，支持关键词全文检索</p>
+    <p class="sub">经典版 / 免费版（常规服 · 怀旧服）游戏设置确认群 + 内部咨询群历史问答，支持关键词全文检索</p>
     <div class="stats" id="heroStats"></div>
   </div>
 </header>
@@ -161,6 +162,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 <div class="sentinel" id="sentinel"></div>
 <footer class="foot">
   <div><b>说明：</b>问答由群聊记录自动归集，「答」为胡宏伟、李昊霖、周国成、徐子健及其他同事的相关回复；一条提问对应多条回复时会依次展示。</div>
+  <div><b>版本：</b>内部咨询群中明确标注 经典版 / 免费版 / 常规服 / 怀旧服 的按标注归入对应标签；未标注版本的默认归入经典版，并以「历史未确认版本」标记。</div>
   <div>内容仅供内部检索参考，具体设置以游戏内实际表现及官方公告为准。</div>
   <div id="footMeta" style="margin-top:8px"></div>
 </footer>
@@ -168,7 +170,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 <button id="topBtn" title="回到顶部">↑</button>
 <div class="toast" id="toast"></div>
 
-<script src="qa_data.js?v=20261124072439"></script>
+<script src="qa_data.js?v=20261124090230"></script>
 <script>
 (function(){
   "use strict";
@@ -223,14 +225,23 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
       '<span class="stat"><b>'+a+'</b>条已回复</span>'+
       '<span class="stat"><b>'+DATA.experts.length+'</b>位主要答复人</span>'+
       '<span class="stat">更新于 '+esc(DATA.generatedAt)+'</span>';
-    document.getElementById("footMeta").textContent = "数据更新：" + DATA.generatedAt + " · 共 " + t + " 条问答";
+    document.getElementById("footMeta").textContent = "数据更新：" + DATA.generatedAt + " · 共 " + t + " 条问答" +
+      " · 内部咨询群 " + ORDER.reduce(function(s,g){var x=GROUPS[g];return s+((x&&x.internalCount)||0);},0) +
+      " 条 · 历史未确认版本 " + ORDER.reduce(function(s,g){var x=GROUPS[g];return s+((x&&x.unconfirmedCount)||0);},0) + " 条";
   }
 
   function renderFilters(){
-    if(state.tab!=="free"){ $filters.classList.remove("show"); $filters.innerHTML=""; return; }
-    var opts=[["","全部"],["常规服","常规服"],["怀旧服","怀旧服"],["-","未标注"]];
+    if(state.tab==="free"){
+      var opts=[["","全部"],["常规服","常规服"],["怀旧服","怀旧服"],["-","未标注"]];
+      $filters.classList.add("show");
+      $filters.innerHTML = opts.map(function(o){
+        return '<button class="chip'+(state.server===o[0]?' on':'')+'" data-server="'+o[0]+'">'+o[1]+'</button>';
+      }).join("");
+      return;
+    }
+    var co=[["","全部"],["c","已确认版本"],["u","历史未确认版本"]];
     $filters.classList.add("show");
-    $filters.innerHTML = opts.map(function(o){
+    $filters.innerHTML = co.map(function(o){
       return '<button class="chip'+(state.server===o[0]?' on':'')+'" data-server="'+o[0]+'">'+o[1]+'</button>';
     }).join("");
   }
@@ -294,7 +305,8 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
       '<button class="copy-link" data-copy="'+e.id+'" title="复制本条链接">链接</button>'+
       '<div class="meta"><span class="badge q">问</span><span class="name" title="'+esc(e.asker)+'">'+esc(e.asker)+'</span>'+
       '<span class="time">'+esc(fmtDate(e.date)+" "+e.time)+'</span>'+
-      (e.server?'<span class="server">'+esc(e.server)+'</span>':'')+'</div>'+
+      (e.server?'<span class="server">'+esc(e.server)+'</span>':'')+
+      (e.unconfirmed?'<span class="unc">历史未确认版本</span>':'')+'</div>'+
       '<div class="body">'+linkify(e.question)+'</div></div>';
     var acard = answers.length
       ? '<div class="card acard">'+answerHtml+'</div>'
@@ -305,7 +317,9 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   function compute(){
     var base=tabEntries(state.tab);
     if(state.server){
-      base = base.filter(function(e){ return state.server==="-"? !e.server : e.server===state.server; });
+      if(state.server==="c"){ base = base.filter(function(e){ return !e.unconfirmed; }); }
+      else if(state.server==="u"){ base = base.filter(function(e){ return !!e.unconfirmed; }); }
+      else { base = base.filter(function(e){ return state.server==="-"? !e.server : e.server===state.server; }); }
     }
     var toks=tokens();
     if(!toks.length){ state.filtered=base; return; }
@@ -333,7 +347,8 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
     if(toks.length){
       $result.innerHTML='找到 <b>'+list.length+'</b> 条问答'+(list.length>state.shown?'，已显示 '+state.shown+' 条':'');
     }else{
-      $result.innerHTML='共 <b>'+list.length+'</b> 条问答 · 按时间倒序'+(state.server?' · '+esc(state.server==='-'?'未标注':state.server):'');
+      var lbl = state.server==='-'?'未标注':state.server==='c'?'已确认版本':state.server==='u'?'历史未确认版本':state.server;
+      $result.innerHTML='共 <b>'+list.length+'</b> 条问答 · 按时间倒序'+(state.server?' · '+esc(lbl):'');
     }
     $clear.style.display = state.q ? "block" : "none";
     var hint=document.getElementById("enterHint"); hint.style.display = (toks.length && list.length>1) ? "block" : "none";
@@ -417,7 +432,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   var qp=new URLSearchParams(location.search);
   if(qp.get("tab") && GROUPS[qp.get("tab")]) state.tab=qp.get("tab");
   if(qp.get("q")){ state.q=qp.get("q"); $search.value=state.q; }
-  if(qp.get("server") && state.tab==="free") state.server=qp.get("server");
+  if(qp.get("server")) state.server=qp.get("server");
   initData(); renderHero(); renderTabs(); renderFilters(); render(true);
 
   if(location.hash){
