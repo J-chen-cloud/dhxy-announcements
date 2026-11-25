@@ -89,6 +89,10 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 .time{font-size:10.5px;color:#a9a294;font-variant-numeric:tabular-nums}
 .server{font-size:10px;border:1px solid #d6c9ae;color:#8f7c50;border-radius:999px;padding:0 7px;line-height:1.7;background:#fffaf0}
 .unc{font-size:10px;line-height:1.7;color:#B26A00;border:1px dashed #E0B070;background:#FFF6E6;border-radius:999px;padding:0 7px;letter-spacing:.02em}
+.badge.face{background:#E8F1E4;color:#2e7d5b}
+.sect{font-size:10px;color:#9a8f7a;border-left:2px solid #e0d3b8;padding-left:6px}
+.srclink{font-size:10px;color:#2f6f9f;text-decoration:none;border:1px solid #cfe0ee;background:#f4f9fd;border-radius:999px;padding:0 8px;line-height:1.7;white-space:nowrap}
+.srclink:hover{background:#e7f2fb;color:var(--crimson)}
 .body{font-size:13.5px;line-height:1.8;color:#2c2a26;word-break:break-word;white-space:pre-wrap}
 .body a{color:#2f6f9f;text-decoration:none;border-bottom:1px dotted #9dbdd6;word-break:break-all}
 .body a:hover{color:var(--crimson)}
@@ -137,7 +141,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   <div class="inner">
     <div class="kicker">大话西游2 · 内部知识存档</div>
     <h1>游戏设置 <span>问答存档</span></h1>
-    <p class="sub">经典版 / 免费版（常规服 · 怀旧服）游戏设置确认群 + 内部咨询群历史问答，支持关键词全文检索</p>
+    <p class="sub">经典版 / 免费版（常规服 · 怀旧服）游戏设置确认群 + 内部咨询群 + 官网开发组面对面问答，支持关键词全文检索</p>
     <div class="stats" id="heroStats"></div>
   </div>
 </header>
@@ -173,13 +177,14 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 <button id="topBtn" title="回到顶部">↑</button>
 <div class="toast" id="toast"></div>
 
-<script src="qa_data.js?v=20261124094642"></script>
+<script src="qa_data.js?v=20261125062308"></script>
 <script>
 (function(){
   "use strict";
   var DATA = window.QA_DATA || {groups:{}};
   var GROUPS = DATA.groups || {};
-  var ORDER = ["classic","free"];
+  var ORDER = ["classic","free","face"];
+  var TAB_NAME = {classic:"经典版游戏设置群", free:"免费版游戏设置群", face:"面对面问答一览"};
   var PAGE = 40;
 
   var state = { tab:"classic", q:"", server:"", shown:PAGE, filtered:[], matchIndex:0 };
@@ -205,7 +210,8 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
       var grp = GROUPS[g];
       if(!grp) return;
       grp.entries.forEach(function(e){
-        e._s = (e.question + " " + e.answers.map(function(a){return a.text+" "+a.name;}).join(" ") + " " + e.asker + " " + e.date + " " + (e.server||"")).toLowerCase();
+        e._s = (e.question + " " + e.answers.map(function(a){return a.text+" "+a.name;}).join(" ") + " " + e.asker + " " + e.date +
+          " " + (e.server||"") + " " + (e.version||"") + " " + (e.section||"") + " " + (e.region||"")).toLowerCase();
       });
     });
   }
@@ -216,7 +222,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
     $tabs.innerHTML = ORDER.map(function(g){
       var grp = GROUPS[g] || {name:g, entryCount:0};
       return '<button class="tab'+(state.tab===g?' active':'')+'" data-tab="'+g+'">'+
-        (g==="classic"?"经典版":"免费版")+'游戏设置群<span class="count">'+grp.entryCount+'</span></button>';
+        (TAB_NAME[g]||g)+'<span class="count">'+grp.entryCount+'</span></button>';
     }).join("");
   }
 
@@ -225,15 +231,24 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
     ORDER.forEach(function(g){ var grp=GROUPS[g]; if(grp){ t+=grp.entryCount; a+=grp.answeredCount; }});
     document.getElementById("heroStats").innerHTML =
       '<span class="stat"><b>'+t+'</b>条问答</span>'+
-      '<span class="stat"><b>'+a+'</b>条已回复</span>'+
+      '<span class="stat"><b>'+((GROUPS.face&&GROUPS.face.entryCount)||0)+'</b>条面对面</span>'+
       '<span class="stat"><b>'+DATA.experts.length+'</b>位主要答复人</span>'+
       '<span class="stat">更新于 '+esc(DATA.generatedAt)+'</span>';
     document.getElementById("footMeta").textContent = "数据更新：" + DATA.generatedAt + " · 共 " + t + " 条问答" +
       " · 内部咨询群 " + ORDER.reduce(function(s,g){var x=GROUPS[g];return s+((x&&x.internalCount)||0);},0) +
-      " 条 · 历史未确认版本 " + ORDER.reduce(function(s,g){var x=GROUPS[g];return s+((x&&x.unconfirmedCount)||0);},0) + " 条";
+      " 条 · 历史未确认版本 " + ORDER.reduce(function(s,g){var x=GROUPS[g];return s+((x&&x.unconfirmedCount)||0);},0) + " 条" +
+      " · 面对面 " + ((GROUPS.face&&GROUPS.face.articles&&GROUPS.face.articles.length)||0) + " 期";
   }
 
   function renderFilters(){
+    if(state.tab==="face"){
+      var fo=[["","全部"],["经典版","经典版"],["常规服","常规服"],["怀旧服","怀旧服"]];
+      $filters.classList.add("show");
+      $filters.innerHTML = fo.map(function(o){
+        return '<button class="chip'+(state.server===o[0]?' on':'')+'" data-server="'+o[0]+'">'+o[1]+'</button>';
+      }).join("");
+      return;
+    }
     if(state.tab==="free"){
       var opts=[["","全部"],["常规服","常规服"],["怀旧服","怀旧服"],["-","未标注"]];
       $filters.classList.add("show");
@@ -299,6 +314,22 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   }
 
   function buildCard(e){
+    if(e.src==="face"){
+      var fAns=(e.answers||[]).map(function(a){
+        return '<div class="meta" style="margin-bottom:6px"><span class="badge a">答</span><span class="name">'+esc(a.name)+'</span>'+
+          (e.section?'<span class="sect">'+esc(e.section)+'</span>':'')+'</div>'+
+          '<div class="body">'+linkify(a.text)+'</div>';
+      }).join("");
+      return '<article class="qa" id="'+e.id+'">'+
+        '<div class="card qcard"><button class="copy-link" data-copy="'+e.id+'" title="复制本条链接">链接</button>'+
+        '<div class="meta"><span class="badge q">问</span><span class="badge face">面对面</span>'+
+        '<span class="name" title="'+esc(e.asker)+'">'+esc(e.asker)+'</span>'+
+        (e.version?'<span class="server">'+esc(e.version)+'</span>':'')+
+        '<span class="time">'+esc(fmtDate(e.date))+'</span>'+
+        (e.url?'<a class="srclink" href="'+esc(e.url)+'" target="_blank" rel="noopener" title="'+esc(e.url)+'">原文链接</a>':'')+
+        '</div><div class="body">'+linkify(e.question)+'</div></div>'+
+        '<div class="card acard">'+fAns+'</div></article>';
+    }
     var answers = e.answers || [];
     var answerHtml = answers.length ? answers.map(function(a){
       return '<div class="meta" style="margin-bottom:6px"><span class="badge a">答</span><span class="name" title="'+esc(a.name)+'">'+esc(a.name)+'</span><span class="time">'+esc(fmtDate(a.date)+" "+a.time)+'</span></div>'+
@@ -319,16 +350,32 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 
   function compute(){
     var base=tabEntries(state.tab);
+    state.confCount=0; state.uncCount=0;
+    if(state.tab==="face"){
+      if(state.server){ base = base.filter(function(e){ return e.version===state.server; }); }
+      var ft=tokens();
+      if(ft.length){ base = base.filter(function(e){ return ft.every(function(t){ return e._s.indexOf(t)!==-1; }); }); }
+      state.filtered=base; state.confCount=base.length;
+      return;
+    }
     if(state.server){
       if(state.server==="c"){ base = base.filter(function(e){ return !e.unconfirmed; }); }
       else if(state.server==="u"){ base = base.filter(function(e){ return !!e.unconfirmed; }); }
       else { base = base.filter(function(e){ return state.server==="-"? !e.server : e.server===state.server; }); }
     }
     var toks=tokens();
-    state.confCount=0; state.uncCount=0;
     if(!toks.length){ state.filtered=base; return; }
     var match=function(e){ return toks.every(function(t){ return e._s.indexOf(t)!==-1; }); };
     var conf=base.filter(function(e){ return !e.unconfirmed && match(e); });
+    // 同版本的「面对面」问答一起搜出来（经典版标签只带经典版，免费版标签带常规服/怀旧服）
+    var faceHit=tabEntries("face").filter(function(e){
+      if(!match(e)) return false;
+      return state.tab==="classic" ? e.version==="经典版"
+           : (e.version==="常规服" || e.version==="怀旧服" || e.version==="免费版");
+    });
+    if(faceHit.length){
+      conf = conf.concat(faceHit).sort(function(a,b){ return b.ts-a.ts; });
+    }
     // 搜索时把所有「历史未确认版本」（经典版+免费版）一起带出来，放在确认结果之后
     var pool=tabEntries("classic").concat(tabEntries("free"));
     var seen={}, unc=[];
