@@ -177,7 +177,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 <button id="topBtn" title="回到顶部">↑</button>
 <div class="toast" id="toast"></div>
 
-<script src="qa_data.js?v=20261125062308"></script>
+<script src="qa_data.js?v=20261125063612"></script>
 <script>
 (function(){
   "use strict";
@@ -218,6 +218,9 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 
   function tabEntries(g){ return (GROUPS[g] && GROUPS[g].entries) || []; }
 
+  var FACE_V = {v1:"经典版", v2:"常规服", v3:"怀旧服"};
+  function faceVersion(){ return FACE_V[state.server] || ""; }
+
   function renderTabs(){
     $tabs.innerHTML = ORDER.map(function(g){
       var grp = GROUPS[g] || {name:g, entryCount:0};
@@ -242,7 +245,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 
   function renderFilters(){
     if(state.tab==="face"){
-      var fo=[["","全部"],["经典版","经典版"],["常规服","常规服"],["怀旧服","怀旧服"]];
+      var fo=[["","全部"],["v1","经典版"],["v2","常规服"],["v3","怀旧服"]];
       $filters.classList.add("show");
       $filters.innerHTML = fo.map(function(o){
         return '<button class="chip'+(state.server===o[0]?' on':'')+'" data-server="'+o[0]+'">'+o[1]+'</button>';
@@ -352,7 +355,8 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
     var base=tabEntries(state.tab);
     state.confCount=0; state.uncCount=0;
     if(state.tab==="face"){
-      if(state.server){ base = base.filter(function(e){ return e.version===state.server; }); }
+      var fv=faceVersion();
+      if(fv){ base = base.filter(function(e){ return e.version===fv; }); }
       var ft=tokens();
       if(ft.length){ base = base.filter(function(e){ return ft.every(function(t){ return e._s.indexOf(t)!==-1; }); }); }
       state.filtered=base; state.confCount=base.length;
@@ -414,6 +418,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
       $result.innerHTML='找到 <b>'+(state.confCount+uncN)+'</b> 条问答'+(uncN?'（历史未确认版本 <b>'+uncN+'</b> 条）':'')+(realCount>state.shown?' · 滚动加载更多':'');
     }else{
       var lbl = state.server==='-'?'未标注':state.server==='c'?'已确认版本':state.server==='u'?'历史未确认版本':state.server;
+      if(state.tab==="face"){ lbl = faceVersion(); }
       $result.innerHTML='共 <b>'+list.length+'</b> 条问答 · 按时间倒序'+(state.server?' · '+esc(lbl):'');
     }
     $clear.style.display = state.q ? "block" : "none";
