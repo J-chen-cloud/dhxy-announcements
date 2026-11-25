@@ -77,8 +77,9 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 .content.noface{grid-template-columns:minmax(0,1fr)}
 .content.noface .maincol{grid-column:1}
 .maincol{grid-column:2;grid-row:1;min-width:0}
-.tree{grid-column:1;grid-row:1;justify-self:end;position:sticky;top:10px;
-  width:232px;margin:26px 16px 0 12px;max-height:calc(100vh - 24px);overflow:auto;
+.tree{grid-column:1;grid-row:1;justify-self:end;position:sticky;z-index:5;
+  top:calc(var(--tb,118px) + 12px);
+  width:232px;margin:26px 16px 0 12px;max-height:calc(100vh - var(--tb,118px) - 30px);overflow:auto;
   border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.78);
   box-shadow:0 4px 16px rgba(70,50,20,.06);padding:10px 8px 12px}
 .tree::-webkit-scrollbar{width:6px}
@@ -221,7 +222,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 <button id="topBtn" title="回到顶部">↑</button>
 <div class="toast" id="toast"></div>
 
-<script src="qa_data.js?v=20261125082938"></script>
+<script src="qa_data.js?v=20261125084244"></script>
 <script>
 (function(){
   "use strict";
@@ -319,15 +320,17 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
       var yCount = 0;
       Object.keys(years[y]).forEach(function(v){ years[y][v].forEach(function(a){ yCount+=a.count||0; }); });
       html+='<div class="grp'+(yOpen?"":" collapsed")+'">'+
-        '<div class="y" data-tog="'+yKey+'"><span>'+y+'年</span><span class="cnt">'+yCount+'</span><span class="caret">▾</span></div>'+
+        '<div class="y'+((!state.faceKey&&!state.server)?" on":"")+'" data-tog="'+yKey+'" data-vf=""><span>'+y+'年</span><span class="cnt">'+yCount+'</span><span class="caret">▾</span></div>'+
         '<div class="sub">';
       var vs=VORDER.filter(function(v){ return years[y][v]; });
       vs.forEach(function(v){
         var vKey=yKey+"|"+v;
         var vOpen = state.treeOpen[vKey]===true;
         var vCount = years[y][v].reduce(function(s,a){ return s+(a.count||0); },0);
+        var vCode = v==="常规服" ? "v2" : v==="怀旧服" ? "v3" : "v1";
+        var vOn = !state.faceKey && state.server===vCode;
         html+='<div class="grp'+(vOpen?"":" collapsed")+'">'+
-          '<div class="v" data-tog="'+vKey+'"><span>'+esc(v)+'</span><span class="cnt">'+vCount+'</span><span class="caret">▾</span></div>'+
+          '<div class="v'+(vOn?" on":"")+'" data-tog="'+vKey+'" data-vf="'+vCode+'"><span>'+esc(v)+'</span><span class="cnt">'+vCount+'</span><span class="caret">▾</span></div>'+
           '<div class="rs">';
         var rcnt={};
         years[y][v].forEach(function(a){ rcnt[a.region]=(rcnt[a.region]||0)+1; });
@@ -557,6 +560,30 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   });
   $tree.addEventListener("click",function(ev){
     if(ev.target.closest("#treeClear")){ state.faceKey=""; renderTree(); render(true); return; }
+    var caret=ev.target.closest(".caret");
+    var head=ev.target.closest("[data-tog]");
+    if(caret && head){
+      var ck=head.dataset.tog;
+      var cYear = ck.indexOf("|")<0;
+      var cOpen = cYear ? (state.treeOpen[ck]!==false) : (state.treeOpen[ck]===true);
+      state.treeOpen[ck]=!cOpen; renderTree(); return;
+    }
+    if(head && head.hasAttribute("data-vf")){
+      var code=head.dataset.vf;
+      if(head.classList.contains("v")){
+        var already = (!state.faceKey && state.server===code);
+        state.server = already ? "" : code;
+        state.faceKey="";
+        if(!already) state.treeOpen[head.dataset.tog]=true;
+      }else{
+        state.server=""; state.faceKey="";
+        var yk=head.dataset.tog;
+        state.treeOpen[yk] = state.treeOpen[yk]===false;
+      }
+      renderFilters(); renderTree(); render(true); updateUrl();
+      window.scrollTo({top:Math.max(0,document.querySelector(".toolbar").offsetTop-1),behavior:"smooth"});
+      return;
+    }
     var t=ev.target.closest("[data-tog]");
     if(t){
       var k=t.dataset.tog;
@@ -628,6 +655,12 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   if(qp.get("server")) state.server=qp.get("server");
   if(qp.get("fa")) state.faceKey=qp.get("fa");
   initData(); renderHero(); renderTabs(); renderFilters(); renderTree(); render(true);
+  function syncTb(){
+    var tb=document.querySelector(".toolbar");
+    if(tb) document.documentElement.style.setProperty("--tb", tb.offsetHeight+"px");
+  }
+  syncTb(); window.addEventListener("resize",syncTb);
+  setTimeout(syncTb,200); setTimeout(syncTb,900);
 
   if(location.hash){
     var target=document.getElementById(location.hash.slice(1));
