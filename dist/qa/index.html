@@ -68,6 +68,39 @@ body{
 .tips kbd{font-family:inherit;border:1px solid #ddd3c0;border-bottom-width:2px;border-radius:4px;padding:0 5px;background:#fff;color:#8d8371;font-size:10.5px}
 
 main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
+
+/* 面对面树状导航 */
+.content{max-width:1330px;margin:0 auto;display:grid;grid-template-columns:236px minmax(0,1fr);align-items:start}
+.content.noface{grid-template-columns:minmax(0,1fr)}
+.maincol{min-width:0}
+.tree{position:sticky;top:10px;margin:26px 0 0 12px;max-height:calc(100vh - 24px);overflow:auto;
+  border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.78);
+  box-shadow:0 4px 16px rgba(70,50,20,.06);padding:10px 8px 12px}
+.tree::-webkit-scrollbar{width:6px}
+.tree::-webkit-scrollbar-thumb{background:#e2d6c2;border-radius:3px}
+.tree .tcap{font-size:10.5px;letter-spacing:.14em;color:#a99984;padding:2px 8px 8px;text-transform:uppercase}
+.tree .y{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 8px;border-radius:8px;
+  cursor:pointer;font-size:15px;font-weight:700;color:var(--crimson);letter-spacing:.02em}
+.tree .v{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 8px 5px 16px;border-radius:8px;
+  cursor:pointer;font-size:12.5px;font-weight:600;color:#5d4b39}
+.tree .r{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 8px 4px 30px;border-radius:8px;
+  cursor:pointer;font-size:11.5px;color:#7d6c58}
+.tree .y:hover,.tree .v:hover,.tree .r:hover{background:#f7eee1}
+.tree .r.on,.tree .v.on{background:#f0e0c9;color:var(--crimson);font-weight:700}
+.tree .cnt{font-size:10px;color:#b3a48f;font-weight:400;flex:none}
+.tree .caret{font-size:9px;color:#bda98f;flex:none;transition:transform .15s}
+.tree .grp.collapsed .caret{transform:rotate(-90deg)}
+.tree .sub{display:block}
+.tree .grp.collapsed > .sub{display:none}
+.tree .rs{display:block}
+.tree .grp.collapsed > .rs{display:none}
+.tree .clr{margin:8px 4px 2px;font-size:11px;color:#8a7862;border:1px dashed #d9cbb4;background:#fffdf8;border-radius:8px;padding:5px 0;width:calc(100% - 8px);cursor:pointer}
+.tree .clr:hover{color:var(--crimson);border-color:var(--crimson)}
+@media(max-width:900px){
+  .content{grid-template-columns:minmax(0,1fr)}
+  .tree{position:static;margin:16px 20px 0;max-height:none}
+  main{padding-top:14px}
+}
 .day{display:flex;align-items:center;gap:12px;margin:26px 0 14px;color:#9a9080;font-size:12.5px;letter-spacing:.06em}
 .day::before,.day::after{content:"";height:1px;background:linear-gradient(90deg,transparent,#ded4c0,transparent);flex:1}
 .day:first-child{margin-top:4px}
@@ -165,8 +198,13 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   </div>
 </div>
 
-<main id="list"></main>
-<div class="sentinel" id="sentinel"></div>
+<div class="content" id="content">
+  <aside class="tree" id="tree" hidden></aside>
+  <div class="maincol">
+    <main id="list"></main>
+    <div class="sentinel" id="sentinel"></div>
+  </div>
+</div>
 <footer class="foot">
   <div><b>说明：</b>问答由群聊记录自动归集，「答」为胡宏伟、李昊霖、周国成、徐子健及其他同事的相关回复；一条提问对应多条回复时会依次展示。</div>
   <div><b>版本：</b>内部咨询群中明确标注 经典版 / 免费版 / 常规服 / 怀旧服 的按标注归入对应标签；未标注版本的默认归入经典版，并以「历史未确认版本」标记。</div>
@@ -177,7 +215,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
 <button id="topBtn" title="回到顶部">↑</button>
 <div class="toast" id="toast"></div>
 
-<script src="qa_data.js?v=20261125063612"></script>
+<script src="qa_data.js?v=20261125074812"></script>
 <script>
 (function(){
   "use strict";
@@ -187,7 +225,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   var TAB_NAME = {classic:"经典版游戏设置群", free:"免费版游戏设置群", face:"面对面问答一览"};
   var PAGE = 40;
 
-  var state = { tab:"classic", q:"", server:"", shown:PAGE, filtered:[], matchIndex:0 };
+  var state = { tab:"classic", q:"", server:"", shown:PAGE, filtered:[], matchIndex:0, faceKey:"", treeOpen:{} };
 
   var $list = document.getElementById("list");
   var $search = document.getElementById("search");
@@ -198,6 +236,8 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   var $sentinel = document.getElementById("sentinel");
   var $top = document.getElementById("topBtn");
   var $toast = document.getElementById("toast");
+  var $tree = document.getElementById("tree");
+  var $content = document.getElementById("content");
 
   function esc(s){
     return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -241,6 +281,62 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
       " · 内部咨询群 " + ORDER.reduce(function(s,g){var x=GROUPS[g];return s+((x&&x.internalCount)||0);},0) +
       " 条 · 历史未确认版本 " + ORDER.reduce(function(s,g){var x=GROUPS[g];return s+((x&&x.unconfirmedCount)||0);},0) + " 条" +
       " · 面对面 " + ((GROUPS.face&&GROUPS.face.articles&&GROUPS.face.articles.length)||0) + " 期";
+  }
+
+  var VORDER = ["经典版","常规服","怀旧服","免费版"];
+
+  function renderTree(){
+    if(state.tab!=="face"){ $tree.hidden=true; $content.classList.add("noface"); $tree.innerHTML=""; return; }
+    $tree.hidden=false; $content.classList.remove("noface");
+    var arts=(GROUPS.face&&GROUPS.face.articles)||[];
+    if(state.faceKey){
+      arts.forEach(function(a){
+        if(a.url===state.faceKey){
+          var y=(a.date||"").slice(0,4);
+          state.treeOpen["y"+y]=true;
+          state.treeOpen["y"+y+"|"+(a.version||"经典版")]=true;
+        }
+      });
+    }
+    var years={}, yorder=[];
+    arts.forEach(function(a){
+      var y=(a.date||"").slice(0,4)||"未知";
+      if(!years[y]){ years[y]={}; yorder.push(y); }
+      var v=a.version||"经典版";
+      (years[y][v]=years[y][v]||[]).push(a);
+    });
+    yorder.sort(function(a,b){ return b.localeCompare(a); });
+    var html='<div class="tcap">面对面目录</div>';
+    yorder.forEach(function(y){
+      var yKey="y"+y;
+      var yOpen = state.treeOpen[yKey]!==false;
+      var yCount = 0;
+      Object.keys(years[y]).forEach(function(v){ years[y][v].forEach(function(a){ yCount+=a.count||0; }); });
+      html+='<div class="grp'+(yOpen?"":" collapsed")+'">'+
+        '<div class="y" data-tog="'+yKey+'"><span>'+y+'年</span><span class="cnt">'+yCount+'</span><span class="caret">▾</span></div>'+
+        '<div class="sub">';
+      var vs=VORDER.filter(function(v){ return years[y][v]; });
+      vs.forEach(function(v){
+        var vKey=yKey+"|"+v;
+        var vOpen = state.treeOpen[vKey]===true;
+        var vCount = years[y][v].reduce(function(s,a){ return s+(a.count||0); },0);
+        html+='<div class="grp'+(vOpen?"":" collapsed")+'">'+
+          '<div class="v" data-tog="'+vKey+'"><span>'+esc(v)+'</span><span class="cnt">'+vCount+'</span><span class="caret">▾</span></div>'+
+          '<div class="rs">';
+        var rcnt={};
+        years[y][v].forEach(function(a){ rcnt[a.region]=(rcnt[a.region]||0)+1; });
+        years[y][v].forEach(function(a){
+          var on = state.faceKey===a.url;
+          var lbl = esc(a.region||"其他")+"站" + (rcnt[a.region]>1 ? " "+(a.date||"").slice(5).replace("-","/") : "");
+          html+='<div class="r'+(on?" on":"")+'" data-url="'+esc(a.url)+'" data-v="'+esc(v)+'">'+
+            '<span>'+lbl+'</span><span class="cnt">'+(a.count||0)+'</span></div>';
+        });
+        html+='</div></div>';
+      });
+      html+='</div></div>';
+    });
+    if(state.faceKey) html+='<button class="clr" id="treeClear">显示全部</button>';
+    $tree.innerHTML=html;
   }
 
   function renderFilters(){
@@ -357,6 +453,7 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
     if(state.tab==="face"){
       var fv=faceVersion();
       if(fv){ base = base.filter(function(e){ return e.version===fv; }); }
+      if(state.faceKey){ base = base.filter(function(e){ return e.url===state.faceKey; }); }
       var ft=tokens();
       if(ft.length){ base = base.filter(function(e){ return ft.every(function(t){ return e._s.indexOf(t)!==-1; }); }); }
       state.filtered=base; state.confCount=base.length;
@@ -431,14 +528,15 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
     if(state.tab!=="classic") p.set("tab",state.tab);
     if(state.q) p.set("q",state.q);
     if(state.server) p.set("server",state.server);
+    if(state.tab==="face" && state.faceKey) p.set("fa",state.faceKey);
     var s=p.toString();
     history.replaceState(null,"",location.pathname+(s?"?"+s:"")+location.hash);
   }
 
   function switchTab(g){
     if(state.tab===g) return;
-    state.tab=g; state.server="";
-    renderTabs(); renderFilters(); render(true);
+    state.tab=g; state.server=""; state.faceKey="";
+    renderTabs(); renderFilters(); renderTree(); render(true);
     window.scrollTo({top:Math.max(0,document.querySelector(".toolbar").offsetTop-1),behavior:"smooth"});
   }
 
@@ -450,6 +548,24 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   // events
   $tabs.addEventListener("click",function(ev){
     var b=ev.target.closest("[data-tab]"); if(b) switchTab(b.dataset.tab);
+  });
+  $tree.addEventListener("click",function(ev){
+    if(ev.target.closest("#treeClear")){ state.faceKey=""; renderTree(); render(true); return; }
+    var t=ev.target.closest("[data-tog]");
+    if(t){
+      var k=t.dataset.tog;
+      var isYear = k.indexOf("|")<0;
+      var cur = isYear ? (state.treeOpen[k]!==false) : (state.treeOpen[k]===true);
+      state.treeOpen[k]=!cur; renderTree(); return;
+    }
+    var r=ev.target.closest("[data-url]");
+    if(r){
+      state.faceKey = state.faceKey===r.dataset.url ? "" : r.dataset.url;
+      var v=r.dataset.v;
+      state.server = v==="常规服" ? "v2" : v==="怀旧服" ? "v3" : "v1";
+      renderFilters(); renderTree(); render(true);
+      window.scrollTo({top:Math.max(0,document.querySelector(".toolbar").offsetTop-1),behavior:"smooth"});
+    }
   });
   $filters.addEventListener("click",function(ev){
     var b=ev.target.closest("[data-server]"); if(!b) return;
@@ -504,7 +620,8 @@ main{max-width:1100px;margin:0 auto;padding:26px 20px 10px}
   if(qp.get("tab") && GROUPS[qp.get("tab")]) state.tab=qp.get("tab");
   if(qp.get("q")){ state.q=qp.get("q"); $search.value=state.q; }
   if(qp.get("server")) state.server=qp.get("server");
-  initData(); renderHero(); renderTabs(); renderFilters(); render(true);
+  if(qp.get("fa")) state.faceKey=qp.get("fa");
+  initData(); renderHero(); renderTabs(); renderFilters(); renderTree(); render(true);
 
   if(location.hash){
     var target=document.getElementById(location.hash.slice(1));
